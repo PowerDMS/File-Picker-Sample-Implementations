@@ -1,0 +1,23 @@
+﻿/* Please see documentation at https://docs.microsoft.com/aspnet/core/client-side/bundling-and-minification
+for details on configuring this project to bundle and minify static web assets. */
+
+
+* {
+    box-sizing: border-box;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+
+body {
+    background-color: cornflowerblue;
+}
+
+h1 {
+    text-shadow: 1px 1px 3px black;
+    color: white;
+}
+
+.demo {
+    background-color: lightsteelblue;
+    padding: 10px;
+    width: 800px;
+}

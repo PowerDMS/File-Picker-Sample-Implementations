@@ -1,0 +1,13 @@
+﻿{
+  "profiles": {
+    "MockPartnerSite": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:8008",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "InitScriptUrl": "http://localhost:3000/initializer"
+      }
+    }
+  }
+}
