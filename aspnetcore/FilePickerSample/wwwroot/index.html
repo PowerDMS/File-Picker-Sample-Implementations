@@ -1,0 +1,40 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>PowerDMS File Picker Sample Implementation</title>
+    <link rel="stylesheet" href="css/site.css" type="text/css" />
+    <link rel="stylesheet" href="https://filepicker.powerdms.com/powerDmsFilePicker.css" type="text/css">
+</head>
+<body>
+    <h1>PowerDMS File Picker Sample Implementation</h1>
+
+    <script src="js/site.js"></script>
+    <script src="https://filepicker.powerdms.com/powerDmsFilePicker.js"></script>
+
+    <p class="demo">
+        Click 
+        <input type="button"
+               value="here"
+               onclick="openFilePicker()" />
+        to open the PowerDMS File Picker
+    </p>
+    <p class="demo">
+        You can optionally set a custom height and width for the File Picker. <br />
+        These must be within the minimum and maximum values.
+        <br/><br/>
+        <span>
+            Height: 
+            <input id ="input_height" 
+                   type="number" 
+                   style="width:50px"
+                   value=""/> 
+            Width: 
+            <input id="input_width" 
+                   type="number" 
+                   style="width:50px"
+                   value=""/>
+        </span>
+    </p>
+</body>
+</html>
