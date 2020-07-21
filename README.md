@@ -28,48 +28,125 @@ The function `initializePowerDmsFilePicker` accepts a configuration object. One 
 
 `initializePowerDmsFilePicker` accepts a configuration object as a single parameter. This object has the following structure:
 
+### JavaScript
+
 ```javascript
 {
-  apiKey,         // string,   required
-  onFileSelected, // function, required
-  width,          // number,   optional
-  height          // number,   optional
+  // String, required
+  // The API key given to your organization from PowerDMS.
+  apiKey,
+
+  // Function, required
+  // A callback that is called when a user makes a selection.
+  onSelection,
+
+  // Number, optional
+  // The desired width of the file picker, in pixels.
+  // Restricted from 566 to 1051.
+  width,
+
+  // Number, optional
+  // The desired height of the file picker, in pixels.
+  // Restricted from 350 o 650.
+  height
 }
 ```
 
-If you are familiar with TypeScript, the properties have these types:
+### TypeScript
 
 ```typescript
-{
-  apiKey: string,
-  onFileSelected: (fileRoute: string) => void,
-  width?: number,
-  height?: number
+type FilePickerConfig = {
+  // The API key given to your organization from PowerDMS.
+  apiKey: string;
+
+  // A callback that is called when a user makes a selection.
+  onSelection: (response: SelectionResponse) => void;
+
+  // The desired width of the file picker, in pixels.
+  // Restricted from 566 to 1051.
+  width?: number;
+
+  // The desired height of the file picker, in pixels.
+  // Restricted from 350 o 650.
+  height?: number;
 }
 ```
 
-### `apiKey`
+## Response data
 
-- Required, string
-- This is the API key given to your organization from PowerDMS.
+### JavaScript
 
-### `onFileSelected`
+```javascript
+// Response
+{
+  // Array of file info objects
+  selectedFiles
+}
 
-- Required, function
-- This is a callback that is called when a user selects a file to import.
-- The string parameter is the URL that can be used to acquire the actual file contents.
-- See [link below](#See-also) for more details on the API.
+// File info
+{
+  // Number
+  documentId,
 
-### `width`
+  // String
+  documentName,
 
-- Optional, number
-- The desired width of the file picker, in pixels. This is restricted from 566 to 1051.
+  // Array of parent folder objects
+  breadcrumbs,
 
-### `height`
+  // Number
+  revisionId,
 
-- Optional, number
-- The desired height of the file picker, in pixels. This is restricted from 350 to 650.
+  // String ('draft', 'published', or 'archived')
+  revisionStatus,
 
-## See also
+  // String
+  // This will be the URL of an API endpoint to get the file contents.
+  contentUrl
+}
 
-For more details on how to use the PowerDMS API, see its [documentation](https://api.powerdms.com/openapi/ui/), specifically the endpoint `/documents/{documentId}/revisions/{revisionId}/content` in the _DocumentRevisionFiles_ section.
+// Parent folder
+{
+  // Number
+  id,
+
+  // String
+  name
+}
+```
+
+### TypeScript
+
+```typescript
+type SelectionResponse = {
+  selectedFiles: ResponseFileInfo[];
+}
+
+type ResponseFileInfo = {
+  documentId: number;
+  documentName: string;
+  breadcrumbs: ResponseParentFolder[];
+  revisionId: number;
+  revisionStatus: ObjectStatus;
+
+  // This will be the URL of an API endpoint to get the file contents.
+  contentUrl: string;
+}
+
+enum ObjectStatus {
+  Draft = 'draft',
+  Published = 'published',
+  Archived = 'archived',
+}
+
+type ResponseParentFolder = {
+  id: number;
+  name: string;
+}
+```
+
+## API usage
+
+For more details on how to use the PowerDMS API, see its [documentation](https://api.powerdms.com/openapi/ui/).
+
+The endpoint to get files contents is `/documents/{documentId}/revisions/{revisionId}/content` in the _DocumentRevisionFiles_ section.

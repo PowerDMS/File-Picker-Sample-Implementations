@@ -8,9 +8,7 @@ function openFilePicker() {
 
     var config = {
         apiKey: 'fake-api-key',
-        onFileSelected: function (fileRoute) {
-            console.log('File selected: ' + fileRoute);
-        },
+        onSelection: displayResponse,
     };
 
     if (height) {
@@ -22,4 +20,10 @@ function openFilePicker() {
     }
 
     window.initializePowerDmsFilePicker(config);
+}
+
+function displayResponse(response) {
+    var json = JSON.stringify(response, null, 2);
+    var message = 'FilePicker says: \n' + json;
+    alert(message);
 }
