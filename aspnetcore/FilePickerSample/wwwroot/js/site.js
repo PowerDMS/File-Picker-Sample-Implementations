@@ -12,11 +12,11 @@ function openFilePicker() {
     };
 
     if (height) {
-        config.height = height + 'px';
+        config.height = Number(height);
     }
 
     if (width) {
-        config.width = width + 'px';
+        config.width = Number(width);
     }
 
     window.initializePowerDmsFilePicker(config);
