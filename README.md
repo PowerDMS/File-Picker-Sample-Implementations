@@ -4,11 +4,13 @@ This repository contains examples showing how to consume the PowerDMS File Picke
 
 ## Overview
 
-The File Picker is implemented as an IFrame, with the contents hosted at `https://filepicker.powerdms.com`.
+The File Picker is implemented as an iFrame, with the contents hosted at `https://filepicker.powerdms.com`.
 
-There is a small initialization script and stylesheet that must be referenced on the consuming page to create and cleanup the IFrame. The initialization script will add a function called `initializePowerDmsFilePicker` to the `window` which will create the IFrame. The consuming page must have a button that will call this function.
+There is a small initialization script and stylesheet that must be referenced on the consuming page to create and cleanup the iFrame. The initialization script will add a function called `initializePowerDmsFilePicker` to the `window` which will create the iFrame. The consuming page must have a button that will call this function.
 
 The function `initializePowerDmsFilePicker` accepts a configuration object. One of the properties of this object is a function `onFileSelected` which is called when the user selects a PowerDMS document. When `onFileSelected` is called, the File Picker will pass information back to the consuming page, including the URL to use to get the file contents from the PowerDMS API. (See [link below](#See-also) for more details on the API.)
+
+To see sample implementation code of the PowerDMS File Picker in further detail, visit our sample implementation [HTML](/aspnetcore/FilePickerSample/wwwroot/index.html) and [JavaScript](/aspnetcore/FilePickerSample/wwwroot/js/site.js) files. 
 
 ## How to integrate
 
