@@ -10,7 +10,7 @@ There is a small [initialization script and stylesheet](https://github.com/Power
 
 The function `initializePowerDmsFilePicker` accepts a configuration object. One of the properties of this object is a function `onFileSelected` which is called when the user selects a PowerDMS document. When `onFileSelected` is called, the File Picker will pass information back to the consuming page, including the URL to use to get the file contents from the PowerDMS API. (See [link below](#See-also) for more details on the API.)
 
-To see sample implementation code of the PowerDMS File Picker in further detail, visit our [Mock Partner Site documentation](https://github.com/PowerDMS/PowerDMS/tree/develop/src/clients/file-picker/mock-partner-site). 
+To see sample implementation code of the PowerDMS File Picker in further detail, visit our [Sample implementation documentation](https://github.com/PowerDMS/File-Picker-Sample-Implementations). 
 
 ## How to integrate
 
