@@ -22,7 +22,7 @@ To see sample implementation code of the PowerDMS File Picker in further detail,
     <script src="https://filepicker.powerdms.com/initializer/powerDmsFilePicker.js"></script>
     ```
 
-2. Add a button to the page that will call `window.initializePowerDmsFilePicker(config)`.
+2. Add a button to the page that will call `window.PowerDms.initializePowerDmsFilePicker(config)`.
 
 3. Add a function that will call the PowerDMS API to get the file contents when a user makes a selection, and assign that to `config.onFileSelected` when the button is clicked.
 

@@ -19,7 +19,7 @@ function openFilePicker() {
         config.width = Number(width);
     }
 
-    window.initializePowerDmsFilePicker(config);
+    window.PowerDms.initializePowerDmsFilePicker(config);
 }
 
 function displayResponse(response) {
