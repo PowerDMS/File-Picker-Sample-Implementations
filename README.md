@@ -27,10 +27,13 @@ To see sample implementation code of the PowerDMS File Picker in further detail,
 3. Add a function that will call the PowerDMS API to get the file contents when a user makes a selection, and assign that to `config.onFileSelected` when the button is clicked.
 
 ## Configuration
+`PowerDms` is a top level namespace that will house all PowerDms api calls. This includes the following calls:
 
+
+### `initializePowerDmsFilePicker`
 `initializePowerDmsFilePicker` accepts a configuration object as a single parameter. This object has the following structure:
 
-### JavaScript
+#### JavaScript
 
 ```javascript
 {
@@ -54,7 +57,7 @@ To see sample implementation code of the PowerDMS File Picker in further detail,
 }
 ```
 
-### TypeScript
+#### TypeScript
 
 ```typescript
 type FilePickerConfig = {
@@ -74,9 +77,9 @@ type FilePickerConfig = {
 }
 ```
 
-## Response data
+### Response data
 
-### JavaScript
+#### JavaScript
 
 ```javascript
 // Response
@@ -117,7 +120,7 @@ type FilePickerConfig = {
 }
 ```
 
-### TypeScript
+#### TypeScript
 
 ```typescript
 type SelectionResponse = {
