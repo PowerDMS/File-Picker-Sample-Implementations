@@ -69,7 +69,7 @@ type FilePickerConfig = {
   width?: number;
 
   // The desired height of the file picker, in pixels.
-  // Restricted from 350 o 650.
+  // Restricted from 350 to 650.
   height?: number;
 }
 ```
