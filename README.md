@@ -58,7 +58,7 @@ You can construct a link to the selected document that allows an authenticated u
 - `{siteKey}` is the PowerDMS Site Key that a user logging into PowerDMS specifies to identify the correct site to log into. This is not a part of the File Picker response and will need to be prompted for in a different way. 
 - `{documentId}` is the id of the selected document. This maps to the `documentId` property on the selected file response object. 
 
-For example, to link to document 20 in site AcmeCorp, you'll construct a link `https://powerdms.com/link/AcmeCorp/document/?id=8`.
+For example, to link to document 20 in site AcmeCorp, you'll construct a link `https://powerdms.com/link/AcmeCorp/document/?id=20`.
 
 <br />
 
@@ -72,6 +72,8 @@ Call `POST /documents/past-published-revisions`. In the message body, specify th
    "documentIds": [10, 15, 77]
 }
 ```
+The timezone part of the date object is optional, if not included, then the site's default timezone will be used. 
+
 For each `documentId` passed, this endpoint will return the active revision at the targetDate. An example response for the above call could be: 
 ```json
 {
