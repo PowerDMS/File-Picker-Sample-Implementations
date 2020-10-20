@@ -143,10 +143,10 @@ type SelectionResponse = {
 }
 
 type ResponseFileInfo = {
-  documentId: number;
+  documentId: string;
   documentName: string;
   breadcrumbs: ResponseParentFolder[];
-  revisionId: number;
+  revisionId: string;
   revisionStatus: ObjectStatus;
 
   // This will be the URL of an API endpoint to get the file contents.
