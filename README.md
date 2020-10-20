@@ -176,7 +176,7 @@ https://powerdms.com/link/AcmeCorp/revision/?ID=39405
 
 <br />
 
-See the specific endpoint documentation for [Getting Revisions](https://apidocs.powerdms.com/#026ef757-9125-4ce2-b0cc-dbd52cb0a94c) in the [PowerDMS API](https://apidocs.powerdms.com/).
+See the specific endpoint documentation for [Getting Revisions](https://apidocs.powerdms.com/#4b5e1bec-3aaa-4807-9b30-a7f6c6e9c2d3) in the [PowerDMS API](https://apidocs.powerdms.com/).
 
 <br />
 
