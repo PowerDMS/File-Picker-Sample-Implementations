@@ -1,98 +1,163 @@
-# File-Picker-Sample-Implementations
+# PowerDMS File Picker
 
-This repository contains examples showing how to consume the PowerDMS File Picker. Currently only an ASP.NET Core example is provided.
+This repository contains examples showing how to use the PowerDMS File Picker. Currently only an ASP.NET Core example is provided.
+
+For information about getting access to the PowerDMS File Picker, contact us at support@powerdms.com.
 
 ## Overview
 
-The PowerDMS File Picker is a widget that provides to users the ability to search for and select their PowerDMS documents from within another site using a familiar user experience 
+The **PowerDMS File Picker** is a file selection widget that can be embedded into any web application and to provide users the ability to search for and select files from PowerDMS. 
+
+It presents users with a familiar and consistent experience when accessing their PowerDMS content from an external source.
 
 <br />
 
 ## Table of Contents
 
-- [Integrating the File Picker](#How-to-integrate)
+- [How to use the PowerDMS File Picker](#Using-the-file-picker)
 - [Common Integration Scenarios](#Common-Integration-Scenarios)
-  - [Download the selected document](#Downloading-the-Selected-Document)
-  - [Get a link to the selected document](#Linking-to-the-Selected-Document)
-  - [Find a previous version of the selected document that was active on a certain date](#Active-Revision-on-a-Specific-Date)
+  - [Download a selected document](#Download-a-Selected-Document)
+  - [Get a link to the selected document](#Link-to-a-Selected-Document)
+  - [Find a previous version of the selected document that was active on a certain date](#Link-to-a-Revision-of-a-Document-on-a-Specific-Date)
 - [File Picker API](#File-Picker-API)
   - [Initialization Configuration](#Initialization-Configuration)
   - [Selected File Response](#Selected-File-Response)
 
 <br />
 
-## How to integrate
-At a high level, you do a few things to integrate the File Picker: 
-1. Add references to the initialization files to your page:
+# Using the File Picker
+
+At a high level, the PowerDMS File Picker is implemented as an iFrame that gets embedded into your application. Follow these three simple steps to get started.
+
+<br />
+
+1. Reference the following stylesheet and initialization script files on the consuming page:
 
     ```html
     <link rel="stylesheet" href="https://filepicker.powerdms.com/initializer/powerDmsFilePicker.css" type="text/css">
 
     <script src="https://filepicker.powerdms.com/initializer/powerDmsFilePicker.js"></script>
     ```
-2. Prompt the user to authenticate.
 
-3. Open the File Picker.
+   The initialization script will add a function called `initializePowerDmsFilePicker` to the `window` which will style and create the iFrame.
 
-     Add a button to the page that will call `window.PowerDms.initializePowerDmsFilePicker(config)`.
+2. Create a function that will be called when a user makes a selection:
 
-4. Handle the selection result.
+   ```javascript
+   function displaySelection(response) {
 
-     Add a function that will call the PowerDMS API to get the file contents when a user makes a selection, and assign that to `config.onFileSelected` when the button is clicked.
+      var json = JSON.stringify(response);
+      var message = 'Selection: \n' + json;
+
+      alert(message);
+   }
+   ```
+
+   The `response` will include a list of selected documents that gets passed on to the consuming page, including the URLs that can be used to get the files from the [PowerDMS API](https://apidocs.powerdms.com).
+
+3. Call the function `initializePowerDmsFilePicker` from the consuming page using a button:
+
+   ```javascript
+   function openFilePicker() {
+
+      var config = {
+         apiKey: 'your-api-key',
+         onSelection: displaySelection,
+      };
+
+      window.PowerDms.initializePowerDmsFilePicker(config);
+   }
+   ```
+
+   The `configuration` provided to `initializePowerDmsFilePicker` must include the `API Key` provided by PowerDMS for your application and the function you previously created to receive the `onSelection` callback when the user selects documents.
 
 <br />
 
+# Common Integration Scenarios
 
-## Common Integration Scenarios
-The File Picker returns metadata about selected files. You may need to orchestrate additional API calls to achieve the intended integration experience. This section provides examples for some common scenarios.     
+The PowerDMS File Picker returns metadata corresponding to the files a user selected. Using the [PowerDMS API](https://apidocs.powerdms.com), your application can extend this functionality and build custom integration experiences. 
 
-<br />
-
-### Downloading the Selected Document
-The File Picker selection object contains all of the information necessary to download the current revision of the selected file. To do so, call the `/documents/{documentId}/revisions/{revisionId}/content` endpoint using the `documentId` and `revisionId` from the selected file. For convenience, the correct link for the selected document is passed as the `contentUrl` property on the selection result. See the specific endpoint documentation (link tbd) for details.   
+This section provides examples for some common scenarios.
 
 <br />
 
-### Linking to the Selected Document
-You can construct a link to the selected document that allows an authenticated user to view the latest version of the selected document. The format of the link is `https://powerdms.com/link/{siteKey}/document/?id={documentId}` where:
-- `{siteKey}` is the PowerDMS Site Key that a user logging into PowerDMS specifies to identify the correct site to log into. This is not a part of the File Picker response and will need to be prompted for in a different way. 
-- `{documentId}` is the id of the selected document. This maps to the `documentId` property on the selected file response object. 
+## Download a Selected Document
 
-For example, to link to document 20 in site AcmeCorp, you'll construct a link `https://powerdms.com/link/AcmeCorp/document/?id=20`.
+The PowerDMS File Picker [`SelectedFileResponse`](#Selected-File-Response) object contains the information necessary to download the files corresponding to the the documents selected by the user. 
+
+Using the `documentId` and `revisionId` from a selected document, call the `Get File by ID` endpoint using an authorized request:
+
+```http
+GET https://api.powerdms.com/v1/documents/{documentId}/revisions/{revisionId}/content
+```
+
+For your convenience, the url used to download the file for the selected document is also included as the `contentUrl` property.
+
+See the specific endpoint documentation for [Getting Files](https://apidocs.powerdms.com/#026ef757-9125-4ce2-b0cc-dbd52cb0a94c) in the [PowerDMS API](https://apidocs.powerdms.com/).
 
 <br />
 
-### Active Revision on a Specific Date
-To link to the previous version of the selected document that was active on a certain, date, you will need to: 
+## Link to a Selected Document
 
-Call `POST /documents/past-published-revisions`. In the message body, specify the date at which you want the active revision, and the ids of the documents whose active revisions you want at the specified date. For example, to find the revisions of documents 10, 15, and 77 that were active on October 5th, 2019, you would make a call to `POST /documents/past-published-revisions` with a request body of 
+You can construct a link to the selected document that allows an authenticated user to view the latest version of the selected document within PowerDMS.com with the following format:
+
+```http
+https://powerdms.com/link/{siteKey}/document/?id={documentId}
+``` 
+
+- `{siteKey}` is the unique identifier that corresponds to the organization in PowerDMS the user is logged into. *This is not a part of the File Picker response and will need to be prompted for in a different way.*
+
+- `{documentId}` is the id of the selected document. This is provided by the `documentId` property on the selected file object.
+
+<br />
+
+For example, to link to document `201893` in site `AcmeCorp`, you'll construct a link that looks like the following:
+
+```http
+https://powerdms.com/link/AcmeCorp/document/?id=201893
+```
+
+<br />
+
+## Link to a Revision of a Document on a Specific Date
+
+You can also link to a specific version of a selected document that was active on a certain date in PowerDMS.com. This will require you to request published revisions on a specific date using the API.
+
+Call the `Published Revisions for Documents in date` endpoint using an authorized request and specify the date the revisions should have been published for a set of documents.
+
+The following example would provide the revisions that were active on `October 5th, 2019` for documents `15560`, `28915`, and `78137`:
+
 ```json
+POST https://api.powerdms.com/v1/documents/past-published-revisions
+
 {
    "targetDate": "2019-10-05T04:00:00.000Z",
-   "documentIds": [10, 15, 77]
+   "documentIds": [15560, 28915, 78137]
 }
 ```
-The timezone part of the date object is optional, if not included, then the site's default timezone will be used. 
 
-For each `documentId` passed, this endpoint will return the active revision at the targetDate. An example response for the above call could be: 
+*The timezone in `targetDate` is optional. The site's default timezone will be used if not included.*
+
+This endpoint will return the active revision at the `targetDate` for each `documentId` provided. The example response for the above call would be:
+
 ```json
 {
    "data": [
    {
-      "documentId": "10",
+      "documentId": "15560",
       "isPublicationFound": true,
       "publishedRevision": {
-         "documentRevisionId": "2",
-         "deepLinkUri": "https://powerdms.com/link/AcmeCorp/revision/?ID=2"
+         "documentRevisionId": "39405",
+         "deepLinkUri": "https://powerdms.com/link/AcmeCorp/revision/?ID=39405"
       }
    },
    {
-      "documentId": "15",
+      "documentId": "28915",
       "isPublicationFound": false,
       "publishedRevision": null
    },
    {
-      "documentId": "77",
+      "documentId": "78137",
       "isPublicationFound": false,
       "publishedRevision": null
    }   
@@ -101,19 +166,28 @@ For each `documentId` passed, this endpoint will return the active revision at t
 }
 ```
 
-Note the `isPublicationFound` boolean. If there was no published revision for the document on the specific date, the this will be `false` and the `publishedRevision` will be null. 
+If there was no published revision for the document on the specific date, the this will be `false` and the `publishedRevision` will be *null*.
 
-Using the data from the above response, you can download document contents or construct a link to a specific revision as normal. 
+Using the above response, the link to a specific revision would be provided in the `deepLinkUri` property:
+
+```http
+https://powerdms.com/link/AcmeCorp/revision/?ID=39405
+```
 
 <br />
 
-## File Picker API 
+See the specific endpoint documentation for [Getting Revisions](https://apidocs.powerdms.com/#4b5e1bec-3aaa-4807-9b30-a7f6c6e9c2d3) in the [PowerDMS API](https://apidocs.powerdms.com/).
 
-`PowerDms` is a top level namespace that will house all PowerDms api calls. This includes the following calls:
+<br />
+
+# File Picker API
+
+`PowerDms` is a top level namespace that will house all PowerDMS File Picker API classes. This includes the following calls:
 
 
-### Initialization Configuration
-`initializePowerDmsFilePicker` accepts a configuration object as a single parameter. This object has the following structure (in TypeScript):
+## Initialization Configuration
+
+The `initializePowerDmsFilePicker` function accepts a `configuration` object as a single parameter. This object has the following structure (in TypeScript):
 
 ```typescript
 type FilePickerConfig = {
@@ -133,9 +207,9 @@ type FilePickerConfig = {
 }
 ```
 
-### Selected File Response
+## Selected File Response
 
-When files are selected, we invoke the `onSelection` callback with metadata about the selected files. The metadata has the following structure: 
+When files are selected, the `onSelection` callback is invoked with metadata about the selected files. The metadata has the following structure: 
 
 ```typescript
 type SelectionResponse = {
@@ -164,48 +238,50 @@ type ResponseParentFolder = {
   name: string;
 }
 ```
+
 Here is an example of the response you'll get from selected 3 documents: 
+
 ```json
 {
    "selectedFiles":[
       {
-         "documentId":"8",
+         "documentId":"13211",
          "documentName":"Conduct Policy (Public & Published)",
          "breadcrumbs":[
             {
-               "id":"13",
+               "id":"13269",
                "name":"Policies"
             }
          ],
-         "revisionId":"8",
+         "revisionId":"38917",
          "revisionStatus":"Publication",
-         "contentUrl":"http://powerdms.com/v1/documents/8/revisions/8/content"
+         "contentUrl":"http://powerdms.com/v1/documents/13211/revisions/38917/content"
       },
       {
-         "documentId":"1",
+         "documentId":"13752",
          "documentName":"Sexual Harassment Policy",
          "breadcrumbs":[
             {
-               "id":"13",
+               "id":"13269",
                "name":"Policies"
             }
          ],
-         "revisionId":"1",
+         "revisionId":"35674",
          "revisionStatus":"Publication",
-         "contentUrl":"http://powerdms.com/v1/documents/1/revisions/1/content"
+         "contentUrl":"http://powerdms.com/v1/documents/13752/revisions/35674/content"
       },
       {
-         "documentId":"2",
+         "documentId":"17896",
          "documentName":"Procedural Policy (Draft)",
          "breadcrumbs":[
             {
-               "id":"13",
+               "id":"13269",
                "name":"Policies"
             }
          ],
-         "revisionId":"2",
+         "revisionId":"32154",
          "revisionStatus":"Draft",
-         "contentUrl":"http://powerdms.com/v1/documents/2/revisions/2/content"
+         "contentUrl":"http://powerdms.com/v1/documents/17896/revisions/32154/content"
       }
    ]
 }
