@@ -15,8 +15,8 @@ It presents users with a familiar and consistent experience when accessing their
 ## Table of Contents
 - [Integrating the PowerDMS File Picker](#Integrating-the-PowerDMS-File-Picker)
   - [Authenticating via the File Picker](#Authenticating-via-the-File-Picker)
-  - [Configure an endpoint to renew tokens]()
   - [Displaying the PowerDMS File Picker](#Displaying-the-PowerDMS-File-Picker)
+  - [Renewing the access token](#Renewing-the-access-token)
 - [Common Integration Scenarios](#Common-Integration-Scenarios)
   - [Download a selected document](#Download-a-Selected-Document)
   - [Get a link to the selected document](#Link-to-a-Selected-Document)
