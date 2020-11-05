@@ -13,8 +13,10 @@ It presents users with a familiar and consistent experience when accessing their
 <br />
 
 ## Table of Contents
-
-- [How to use the PowerDMS File Picker](#Using-the-file-picker)
+- [Integrating the PowerDMS File Picker](#Integrating-the-PowerDMS-File-Picker)
+  - [Authenticating via the File Picker](#Authenticating-via-the-File-Picker)
+  - [Configure an endpoint to renew tokens]()
+  - [Displaying the PowerDMS File Picker](#Displaying-the-PowerDMS-File-Picker)
 - [Common Integration Scenarios](#Common-Integration-Scenarios)
   - [Download a selected document](#Download-a-Selected-Document)
   - [Get a link to the selected document](#Link-to-a-Selected-Document)
@@ -25,7 +27,149 @@ It presents users with a familiar and consistent experience when accessing their
 
 <br />
 
-# Using the File Picker
+# Integrating the PowerDMS File Picker
+
+There are a few high level steps to follow to integrate the File Picker into your application. 
+
+First, you'll need to prompt the user to authenticate against PowerDMS and grant your application access on their behalf. This is accomplised by implementing an Open Id Connect Code Flow. You'll need to save the refresh token so that you can request access tokens in the future so that the user does not need to continue to authenticate. See [Authenticating via the File Picker](#Authenticating-via-the-File-Picker) for details. 
+
+Once you've received an access token, you'll then need to display the File Picker. You'll pass in the access token and other configuration parameters. See [Displaying the PowerDMS File Picker](#Displaying-the-PowerDMS-File-Picker) for more details. 
+
+Access tokens are valid for 1 hour. Once expired, they can be refreshed using the `refresh_token` that's returned as part of the initial authentication call. The File Picker will automatically call a configurable endpoint to generate a new access token. The details of this contract are outlined in the section [Renewing the access token](#Renewing-the-access-token). 
+
+<br />
+
+## Authenticating via the File Picker
+
+The File Picker uses Open ID Connect Code Flow (OIDC Code Flow) for authentication. When the authentication function is called, we will open a new window that initiates the authentication flow. To implement authentication you'll: 
+1. Call the `window.PowerDms.openAuthModal` function, passing in a config object. The structure of the config object is detailed in the [Authentication Configuration section](#Authentication-Configuration).
+
+   ```typescript
+   function openAuthModal(clientConfig) {
+      // Creating a state object with the username encoded. You can 
+      // add whatever other information you want here
+      const state = {
+         hash: // A HASH YOU GENERATE AND STORE
+         username: // YOUR USERNAME
+      }
+      var encodedState = encodeURIComponent(btoa(JSON.stringify(state)));
+
+      var config = {
+         clientId: // YOUR CLIENT ID,
+         redirectUrl: // YOUR REDIRECT URL,
+         state: encodedState,
+      };
+
+      window.PowerDms.openAuthModal(config);
+   }
+
+2.  Implement the callback to retrieve the OIDC tokens. Upon successful authentication, the user will be redirected back to the `redirectUrl` with query string parameters reflecting the code and state in the form `redirectUrl?code=${code}&state=${state}`. You will need to make a POST request to `https://accounts.powerdms.com/oauth/token` with the following form-url encoded parameters: 
+      - grant_type = authorization_code
+      - client_id = The client id supplied by PowerDMS
+      - client_secret = The client secret supplied by PowerDMS. This is sensitive and should never be shared or returned to the    browser. 
+      - code = The authorization code passed as a query string parameter after successful authentication. 
+      - redirect_uri = Your redirect url. 
+
+      The following is a sample HTTP request:
+      ```http
+      POST https://accounts.powerdms.com/oauth/token
+      Content-Type: application/x-www-form-urlencoded
+
+      grant_type=authorization_code&client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET&code=AUTHORIZATION_CODE&redirect_uri=https://YOUR_APP/callback
+      ```
+      
+      This is an example response: 
+      ```http
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+      {
+      "access_token":"eyJz93a...k4laUWw",
+      "refresh_token":"GEbRxBN...edjnXbL",
+      "id_token":"eyJ0XAi...4faeEoQ",
+      "token_type":"Bearer",
+      "expires_in":86400
+      }
+      ```
+
+      After retrieving the tokens, you'll need to save your refresh tokens for later retrieval, and then complete the auth flow by redirecting the user to the File Picker with the correct tokens. The full redirect url will be: `https://filepicker.powerdms.com/auth-finalize?$access_token=YOUR_ACCESS_TOKEN&client_id=YOUR_CLIENT_ID&id_token=YOUR_ID_TOKEN&locale=YOUR_LOCALE&redirect_url=https://YOUR_APP/callback`
+
+      Below is sample C# code implementing this step: 
+
+      ```c#
+      [HttpGet, Route("callback")]
+      public async Task<ActionResult> Connect(string code, string state, string error, string error_description)
+      {
+         // turn the state into an object
+         var decodedState = HttpUtility.UrlDecode(state);
+         var bytes = Convert.FromBase64String(decodedState);
+         var stateJsonString = Encoding.UTF8.GetString(bytes);
+         var stateObj = JsonSerializer.Deserialize<AntiCsrfState>(stateJsonString);
+
+         // validate the state
+         var expectedState = await _antiCsrfDataRepository.GetData(receivedState.Username);
+         if (receivedState.Hash != expectedState.Hash)
+         {
+               throw new Exception("Anti-CSRF state does not match.");
+         }
+
+         // get the tokens
+         var content = new FormUrlEncodedContent(new Dictionary<string, string>
+         {
+            ["grant_type"] = "authorization_code",
+            ["client_id"] = // your client id,
+            ["client_secret"] = // your client secret,
+            ["code"] = code,
+            ["redirect_uri"] = "https://YOUR_APP/callback"
+         }
+         var response = await _httpClient.PostAsync("https://accounts.powerdms.com/oauth/token", content);
+         response.EnsureSuccessStatusCode(response);
+         var responseJson = await response.Content.ReadAsStringAsync();
+         // GetTokenResponse defined below
+         var tokenResponse = JsonSerializer.Deserialize<GetTokenResponse>(responseJson);
+
+         // save the tokens to look up later
+         await _userTokenDataRepository.SaveTokens(new UserTokenData
+         {
+            Username = receivedState.Username,
+            RefreshToken = tokenResponse.RefreshToken,
+            AccessToken = tokenResponse.AccessToken,
+            IdToken = tokenResponse.IdToken
+         });
+
+         var accessToken = Uri.EscapeDataString(tokenResponse.AccessToken);
+         var clientId = Uri.EscapeDataString(clientConfig.ClientId);
+         var idToken = Uri.EscapeDataString(tokenResponse.IdToken);
+         var redirectUrl = Uri.EscapeDataString($"{YOUR REDIRECT URL}/callback");
+
+         var responseUrl = $"{clientConfig.Environment.FilePickerOrigin}/auth-finalize?" +
+               $"access_token={accessToken}&" +
+               $"client_id={clientId}&" +
+               $"id_token={idToken}&" +
+               $"locale={clientConfig.Locale}&" +
+               $"redirect_url={redirectUrl}";
+
+         return new RedirectResult(responseUrl);
+      }
+
+      public class GetTokenResponse
+      {
+         [JsonPropertyName("access_token")]
+         public string AccessToken { get; set; }
+
+         [JsonPropertyName("refresh_token")]
+         public string RefreshToken { get; set; }
+
+         [JsonPropertyName("id_token")]
+         public string IdToken { get; set; }
+
+         [JsonPropertyName("token_type")]
+         public string TokenType { get; set; }
+      }
+      ``` 
+
+<br />
+
+## Displaying the PowerDMS File Picker
 
 At a high level, the PowerDMS File Picker is implemented as an iFrame that gets embedded into your application. Follow these three simple steps to get started.
 
@@ -72,6 +216,74 @@ At a high level, the PowerDMS File Picker is implemented as an iFrame that gets 
    The `configuration` provided to `initializePowerDmsFilePicker` must include the `API Key` provided by PowerDMS for your application and the function you previously created to receive the `onSelection` callback when the user selects documents.
 
 <br />
+
+## Renewing the access token
+
+Our access tokens expire after 1 hour. Expired access tokens will need to be renewed. The File Picker automatically renews access tokens that are no longer valid by calling the endpoint specified on the `tokenRefreshUrl?` configuration option. This is an endpoint that you must implement that conforms to a contract that the File Picker expects. The endpoint must be a POST that accepts the idToken and the partner's username. This endpoint should look up the refresh token that is tied to the user id and call the `https://accounts.powerdms.com/oauth/token` endpoint. The form of this call should be: 
+
+   ```http
+   POST https://accounts.powerdms.com/oauth/token
+   Content-Type: application/x-www-form-urlencoded
+
+   grant_type=refresh_token&client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET&refresh_token=YOUR_REFRESH_TOKEN
+   ```
+
+   Here is an example endpoint in C# using Web API: 
+
+   ```c#
+      [HttpPost, Route("refresh")]
+      public async Task<ActionResult> Refresh([FromQuery(Name ="id_token")] string idToken, string username)
+      {
+         // use either the identity token or the username to look up the refresh token        
+         var refreshToken = await _userTokenDataRepository.GetUserRefreshTokenByUsername(username);
+         
+         var url = "https://accounts.powerdms.com/oauth/token";
+         var content = new FormUrlEncodedContent(new Dictionary<string, string>
+         {
+            ["grant_type"] = "refresh_token",
+            ["client_id"] = //YOUR CLIENT ID,
+            ["client_secret"] = // YOUR CLIENT SECRET,
+            ["refresh_token"] = refreshToken,
+         });
+
+         var response = await _httpClient.PostAsync(url, content);
+
+         if (!response.IsSuccessStatusCode)
+         {
+            throw new Exception($"Failed to get tokens ({response.ReasonPhrase})");
+         }
+
+         var json = await response.Content.ReadAsStringAsync();
+
+         // see structure of token response below
+         var tokenResponse = JsonSerializer.Deserialize<RefreshTokenResponse>(json);
+         
+         return new OkObjectResult(new 
+         {
+            AccessToken = tokenResponse.AccessToken,
+            IdToken = tokenResponse.IdToken 
+         });
+      }
+
+      public class RefreshTokenResponse
+      {
+
+         [JsonPropertyName("access_token")]
+         public string AccessToken { get; set; }
+
+         [JsonPropertyName("expires_in")]
+         public int ExpiresIn { get; set; }
+
+         [JsonPropertyName("scope")]
+         public string Scope { get; set; }
+
+         [JsonPropertyName("id_token")]
+         public string IdToken { get; set; }
+
+         [JsonPropertyName("token_type")]
+         public string TokenType { get; set; }
+      }
+   ```
 
 # Common Integration Scenarios
 
@@ -182,8 +394,31 @@ See the specific endpoint documentation for [Getting Revisions](https://apidocs.
 
 # File Picker API
 
-`PowerDms` is a top level namespace that will house all PowerDMS File Picker API classes. This includes the following calls:
+`PowerDms` is a top level namespace that will house all PowerDMS File Picker API classes.
 
+## Authentication Configuration
+The `window.PowerDms.openAuthModal` function accepts a `configuration` object as a single parameter. This object has the following structure (in TypeScript):
+
+```typescript
+type AuthModalConfig = {
+   // Client Id supplied by PowerDMS 
+   clientId: string,
+   
+   // Url to your endpoint that will handle the code flow 
+   redirectUrl: string,
+
+   // Optional width of the auth modal
+   width?: number;
+
+   // Optional height of the auth modal
+   height?: number;
+
+   // The anti-csrf state parameter that will be passed back to redirectUrl after the user 
+   // successfully authenticates. We recommend encoding your user's id so that when retrieving 
+   // tokens, you can save tokens by user id.  
+   state?: string;
+}
+```
 
 ## Initialization Configuration
 
@@ -191,19 +426,29 @@ The `initializePowerDmsFilePicker` function accepts a `configuration` object as 
 
 ```typescript
 type FilePickerConfig = {
-  // The API key given to your organization from PowerDMS.
-  apiKey: string;
-
-  // A callback that is called when a user makes a selection.
-  onSelection: (response: SelectionResponse) => void;
-
-  // The desired width of the file picker, in pixels.
-  // Restricted from 566 to 1051.
-  width?: number;
+  // The access token from the OIDC Code Flow.
+  accessToken?: string;
 
   // The desired height of the file picker, in pixels.
   // Restricted from 350 to 650.
   height?: number;
+
+  // The id token from the OIDC Code Flow.
+  idToken?: string
+
+  // The local. Defaults to en-us.
+  locale?: string;
+
+  // A callback that is called when a user makes a selection.
+  onSelection: (response: SelectionResponse) => void;
+
+  // This is the url that the File Picker will hit when the access token expires in order to 
+  // refresh the token. 
+  tokenRefreshUrl?: string;
+
+  // The desired width of the file picker, in pixels.
+  // Restricted from 566 to 1051.
+  width?: number;
 }
 ```
 
