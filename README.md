@@ -70,6 +70,8 @@ The File Picker uses Open ID Connect Code Flow (OIDC Code Flow) for authenticati
 
       window.PowerDms.openAuthModal(config);
    }
+   
+   ![image](https://user-images.githubusercontent.com/13018283/122817224-a84d3100-d2a5-11eb-8d43-06ee5d325665.png)
 
 3.  Implement the callback to retrieve the OIDC tokens. Upon successful authentication, the user will be redirected back to the `redirectUrl` with query string parameters reflecting the code and state in the form `redirectUrl?code=${code}&state=${state}`. You will need to make a POST request to `https://accounts.powerdms.com/oauth/token` with the following form-url encoded parameters: 
       - grant_type = authorization_code
