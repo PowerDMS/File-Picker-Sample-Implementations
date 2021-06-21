@@ -72,6 +72,8 @@ The File Picker uses Open ID Connect Code Flow (OIDC Code Flow) for authenticati
    }
    ```
    
+   This will open a separate browser window and start the login flow:
+
    ![image](https://user-images.githubusercontent.com/13018283/122817224-a84d3100-d2a5-11eb-8d43-06ee5d325665.png)
    
    ![image](https://user-images.githubusercontent.com/13018283/122818432-2bbb5200-d2a7-11eb-8272-e95d4cdb936d.png)
@@ -215,6 +217,8 @@ At a high level, the PowerDMS File Picker is implemented as an iFrame that gets 
    window.addEventListener('message', receiveMessage, false);
    ```
    
+   This will open the file picker inside your web application:
+
    ![image](https://user-images.githubusercontent.com/13018283/122818572-5f967780-d2a7-11eb-9d4f-39ef7087b929.png)
 
 
