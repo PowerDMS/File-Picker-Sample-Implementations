@@ -42,7 +42,15 @@ Access tokens are valid for 1 hour. Once expired, they can be refreshed using th
 ## Authenticating via the File Picker
 
 The File Picker uses Open ID Connect Code Flow (OIDC Code Flow) for authentication. When the authentication function is called, we will open a new window that initiates the authentication flow. To implement authentication you'll: 
-1. Call the `window.PowerDms.openAuthModal` function, passing in a config object. The structure of the config object is detailed in the [Authentication Configuration section](#Authentication-Configuration).
+
+1. Reference the following stylesheet and initialization script files on the consuming page:
+
+    ```html
+    <link rel="stylesheet" href="https://filepicker.powerdms.com/initializer/powerDmsFilePicker.css" type="text/css">
+    <script src="https://filepicker.powerdms.com/initializer/powerDmsFilePicker.js"></script>
+    ```
+
+2. Call the `window.PowerDms.openAuthModal` function, passing in a config object. The structure of the config object is detailed in the [Authentication Configuration section](#Authentication-Configuration).
 
    ```typescript
    function openAuthModal(clientConfig) {
@@ -63,12 +71,12 @@ The File Picker uses Open ID Connect Code Flow (OIDC Code Flow) for authenticati
       window.PowerDms.openAuthModal(config);
    }
 
-2.  Implement the callback to retrieve the OIDC tokens. Upon successful authentication, the user will be redirected back to the `redirectUrl` with query string parameters reflecting the code and state in the form `redirectUrl?code=${code}&state=${state}`. You will need to make a POST request to `https://accounts.powerdms.com/oauth/token` with the following form-url encoded parameters: 
+3.  Implement the callback to retrieve the OIDC tokens. Upon successful authentication, the user will be redirected back to the `redirectUrl` with query string parameters reflecting the code and state in the form `redirectUrl?code=${code}&state=${state}`. You will need to make a POST request to `https://accounts.powerdms.com/oauth/token` with the following form-url encoded parameters: 
       - grant_type = authorization_code
       - client_id = The client id supplied by PowerDMS
       - client_secret = The client secret supplied by PowerDMS. This is sensitive and should never be shared or returned to the    browser. 
       - code = The authorization code passed as a query string parameter after successful authentication. 
-      - redirect_uri = Your redirect url. 
+      - redirect_uri = Your redirect url. This must be in the list of allowed URIs for this client.  
 
       The following is a sample HTTP request:
       ```http
@@ -159,17 +167,7 @@ At a high level, the PowerDMS File Picker is implemented as an iFrame that gets 
 
 <br />
 
-1. Reference the following stylesheet and initialization script files on the consuming page:
-
-    ```html
-    <link rel="stylesheet" href="https://filepicker.powerdms.com/initializer/powerDmsFilePicker.css" type="text/css">
-
-    <script src="https://filepicker.powerdms.com/initializer/powerDmsFilePicker.js"></script>
-    ```
-
-   The initialization script will add a function called `initializePowerDmsFilePicker` to the `window` which will style and create the iFrame.
-
-2. Create a function that will be called when a user makes a selection:
+1. Create a function that will be called when a user makes a selection:
 
    ```javascript
    function displaySelection(response) {
@@ -183,7 +181,7 @@ At a high level, the PowerDMS File Picker is implemented as an iFrame that gets 
 
    The `response` will include a list of selected documents that gets passed on to the consuming page, including the URLs that can be used to get the files from the [PowerDMS API](https://apidocs.powerdms.com).
 
-3. Call the function `openFilePicker` from the consuming page using a button:
+2. Call the function `openFilePicker` from the consuming page using a button:
 
    ```javascript
    function receiveMessage(event) {
