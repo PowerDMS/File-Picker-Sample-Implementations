@@ -42,7 +42,15 @@ Access tokens are valid for 1 hour. Once expired, they can be refreshed using th
 ## Authenticating via the File Picker
 
 The File Picker uses Open ID Connect Code Flow (OIDC Code Flow) for authentication. When the authentication function is called, we will open a new window that initiates the authentication flow. To implement authentication you'll: 
-1. Call the `window.PowerDms.openAuthModal` function, passing in a config object. The structure of the config object is detailed in the [Authentication Configuration section](#Authentication-Configuration).
+
+1. Reference the following stylesheet and initialization script files on the consuming page:
+
+    ```html
+    <link rel="stylesheet" href="https://filepicker.powerdms.com/initializer/powerDmsFilePicker.css" type="text/css">
+    <script src="https://filepicker.powerdms.com/initializer/powerDmsFilePicker.js"></script>
+    ```
+
+2. Call the `window.PowerDms.openAuthModal` function, passing in a config object. The structure of the config object is detailed in the [Authentication Configuration section](#Authentication-Configuration).
 
    ```typescript
    function openAuthModal(clientConfig) {
@@ -62,13 +70,21 @@ The File Picker uses Open ID Connect Code Flow (OIDC Code Flow) for authenticati
 
       window.PowerDms.openAuthModal(config);
    }
+   ```
+   
+   This will open a separate browser window and start the login flow:
 
-2.  Implement the callback to retrieve the OIDC tokens. Upon successful authentication, the user will be redirected back to the `redirectUrl` with query string parameters reflecting the code and state in the form `redirectUrl?code=${code}&state=${state}`. You will need to make a POST request to `https://accounts.powerdms.com/oauth/token` with the following form-url encoded parameters: 
+   ![image](https://user-images.githubusercontent.com/13018283/122817224-a84d3100-d2a5-11eb-8d43-06ee5d325665.png)
+   
+   ![image](https://user-images.githubusercontent.com/13018283/122818432-2bbb5200-d2a7-11eb-8272-e95d4cdb936d.png)
+
+
+3.  Implement the callback to retrieve the OIDC tokens. Upon successful authentication, the user will be redirected back to the `redirectUrl` with query string parameters reflecting the code and state in the form `redirectUrl?code=${code}&state=${state}`. You will need to make a POST request to `https://accounts.powerdms.com/oauth/token` with the following form-url encoded parameters: 
       - grant_type = authorization_code
       - client_id = The client id supplied by PowerDMS
       - client_secret = The client secret supplied by PowerDMS. This is sensitive and should never be shared or returned to the    browser. 
       - code = The authorization code passed as a query string parameter after successful authentication. 
-      - redirect_uri = Your redirect url. 
+      - redirect_uri = Your redirect url. This must be in the list of allowed URIs for this client.  
 
       The following is a sample HTTP request:
       ```http
@@ -97,73 +113,57 @@ The File Picker uses Open ID Connect Code Flow (OIDC Code Flow) for authenticati
 
       ```c#
       [HttpGet, Route("callback")]
-      public async Task<ActionResult> Connect(string code, string state, string error, string error_description)
+      public async Task<ActionResult> Callback(string code, string state, string error, string error_description)
       {
-         // turn the state into an object
-         var decodedState = HttpUtility.UrlDecode(state);
-         var bytes = Convert.FromBase64String(decodedState);
-         var stateJsonString = Encoding.UTF8.GetString(bytes);
-         var stateObj = JsonSerializer.Deserialize<AntiCsrfState>(stateJsonString);
-
-         // validate the state
-         var expectedState = await _antiCsrfDataRepository.GetData(receivedState.Username);
-         if (receivedState.Hash != expectedState.Hash)
+         if (!string.IsNullOrEmpty(error))
          {
-               throw new Exception("Anti-CSRF state does not match.");
+               return new JsonResult(new {
+                  error,
+                  error_description
+               });
          }
 
-         // get the tokens
+         var url = $"{AuthServerHost}/oauth/token";
          var content = new FormUrlEncodedContent(new Dictionary<string, string>
          {
-            ["grant_type"] = "authorization_code",
-            ["client_id"] = // your client id,
-            ["client_secret"] = // your client secret,
-            ["code"] = code,
-            ["redirect_uri"] = "https://YOUR_APP/callback"
-         }
-         var response = await _httpClient.PostAsync("https://accounts.powerdms.com/oauth/token", content);
-         response.EnsureSuccessStatusCode(response);
-         var responseJson = await response.Content.ReadAsStringAsync();
-         // GetTokenResponse defined below
-         var tokenResponse = JsonSerializer.Deserialize<GetTokenResponse>(responseJson);
-
-         // save the tokens to look up later
-         await _userTokenDataRepository.SaveTokens(new UserTokenData
-         {
-            Username = receivedState.Username,
-            RefreshToken = tokenResponse.RefreshToken,
-            AccessToken = tokenResponse.AccessToken,
-            IdToken = tokenResponse.IdToken
+               ["grant_type"] = "authorization_code",
+               ["client_id"] = ClientID,
+               ["client_secret"] = ClientSecret,
+               ["code"] = code,
+               ["redirect_uri"] = $"http://localhost:8008/callback"
          });
 
-         var accessToken = Uri.EscapeDataString(tokenResponse.AccessToken);
-         var clientId = Uri.EscapeDataString(clientConfig.ClientId);
-         var idToken = Uri.EscapeDataString(tokenResponse.IdToken);
-         var redirectUrl = Uri.EscapeDataString($"{YOUR REDIRECT URL}/callback");
+         var httpClient = new HttpClient();
+         var response = await httpClient.PostAsync(url, content);
 
-         var responseUrl = $"{clientConfig.Environment.FilePickerOrigin}/auth-finalize?" +
-               $"access_token={accessToken}&" +
-               $"client_id={clientId}&" +
-               $"id_token={idToken}&" +
-               $"locale={clientConfig.Locale}&" +
-               $"redirect_url={redirectUrl}";
+         if (response.IsSuccessStatusCode)
+         {
+               var responseJson = await response.Content.ReadAsStringAsync();
+               var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(responseJson);
 
-         return new RedirectResult(responseUrl);
+               // save refresh token
+               MemoryCache.Default["refreshToken"] = tokenResponse.refresh_token;
+
+               var responseUrl = $"{FilePickerHost}/auth-finalize?" +
+                  $"access_token={Uri.EscapeDataString(tokenResponse.access_token)}&" +
+                  $"client_id={Uri.EscapeDataString(ClientID)}&" +
+                  $"id_token={Uri.EscapeDataString(tokenResponse.id_token)}&" +
+                  $"redirect_url={Uri.EscapeDataString("http://localhost:8008/callback")}";
+
+               return new RedirectResult(responseUrl);
+         }
+         return null;
       }
 
-      public class GetTokenResponse
+      public class TokenResponse
       {
-         [JsonPropertyName("access_token")]
-         public string AccessToken { get; set; }
+         public string access_token { get; set; }
 
-         [JsonPropertyName("refresh_token")]
-         public string RefreshToken { get; set; }
+         public string refresh_token { get; set; }
 
-         [JsonPropertyName("id_token")]
-         public string IdToken { get; set; }
+         public string id_token { get; set; }
 
-         [JsonPropertyName("token_type")]
-         public string TokenType { get; set; }
+         public string token_type { get; set; }
       }
       ``` 
 
@@ -175,17 +175,7 @@ At a high level, the PowerDMS File Picker is implemented as an iFrame that gets 
 
 <br />
 
-1. Reference the following stylesheet and initialization script files on the consuming page:
-
-    ```html
-    <link rel="stylesheet" href="https://filepicker.powerdms.com/initializer/powerDmsFilePicker.css" type="text/css">
-
-    <script src="https://filepicker.powerdms.com/initializer/powerDmsFilePicker.js"></script>
-    ```
-
-   The initialization script will add a function called `initializePowerDmsFilePicker` to the `window` which will style and create the iFrame.
-
-2. Create a function that will be called when a user makes a selection:
+1. Create a function that will be called when a user makes a selection:
 
    ```javascript
    function displaySelection(response) {
@@ -199,21 +189,40 @@ At a high level, the PowerDMS File Picker is implemented as an iFrame that gets 
 
    The `response` will include a list of selected documents that gets passed on to the consuming page, including the URLs that can be used to get the files from the [PowerDMS API](https://apidocs.powerdms.com).
 
-3. Call the function `initializePowerDmsFilePicker` from the consuming page using a button:
+2. Call the function `openFilePicker` from the consuming page using a button:
 
    ```javascript
-   function openFilePicker() {
+   function receiveMessage(event) {
 
-      var config = {
-         apiKey: 'your-api-key',
-         onSelection: displaySelection,
-      };
+      if (event.origin !== 'https://filepicker.powerdms.com')
+      {
+         return;
+      }
 
-      window.PowerDms.initializePowerDmsFilePicker(config);
+      var message = event.data;
+
+      if (message.type === 'DMS_FILEPICKER_SENDTOKENSTOHOST') {
+         const tokens = message.data;
+
+         const config = {
+               accessToken: tokens.accessToken,
+               idToken: tokens.idToken,
+               tokenRefreshUrl: window.location.origin + '/refresh',
+               onSelection: displayResponse,
+         };
+
+         window.PowerDms.openFilePicker(config);
+      }
    }
+   window.addEventListener('message', receiveMessage, false);
    ```
+   
+   This will open the file picker inside your web application:
 
-   The `configuration` provided to `initializePowerDmsFilePicker` must include the `API Key` provided by PowerDMS for your application and the function you previously created to receive the `onSelection` callback when the user selects documents.
+   ![image](https://user-images.githubusercontent.com/13018283/122818572-5f967780-d2a7-11eb-9d4f-39ef7087b929.png)
+
+
+   The `configuration` provided to `openFilePicker` must include the `API Key` provided by PowerDMS for your application and the function you previously created to receive the `onSelection` callback when the user selects documents.
 
 <br />
 
@@ -231,58 +240,40 @@ Our access tokens expire after 1 hour. Expired access tokens will need to be ren
    Here is an example endpoint in C# using Web API: 
 
    ```c#
-      [HttpPost, Route("refresh")]
-      public async Task<ActionResult> Refresh([FromQuery(Name ="id_token")] string idToken, string username)
+   [HttpPost, Route("refresh")]
+   public async Task<ActionResult> Refresh([FromQuery(Name = "id_token")] string idToken, string username)
+   {
+      // get last saved refresh token
+      var refreshToken = MemoryCache.Default["refreshToken"].ToString();
+
+      var url = $"{AuthServerHost}/oauth/token";
+      var content = new FormUrlEncodedContent(new Dictionary<string, string>
       {
-         // use either the identity token or the username to look up the refresh token        
-         var refreshToken = await _userTokenDataRepository.GetUserRefreshTokenByUsername(username);
-         
-         var url = "https://accounts.powerdms.com/oauth/token";
-         var content = new FormUrlEncodedContent(new Dictionary<string, string>
-         {
             ["grant_type"] = "refresh_token",
-            ["client_id"] = //YOUR CLIENT ID,
-            ["client_secret"] = // YOUR CLIENT SECRET,
-            ["refresh_token"] = refreshToken,
-         });
+            ["client_id"] = ClientID,
+            ["client_secret"] = ClientSecret,
+            ["refresh_token"] = refreshToken
+      });
 
-         var response = await _httpClient.PostAsync(url, content);
+      var httpClient = new HttpClient();
+      var response = await httpClient.PostAsync(url, content);
 
-         if (!response.IsSuccessStatusCode)
-         {
-            throw new Exception($"Failed to get tokens ({response.ReasonPhrase})");
-         }
-
-         var json = await response.Content.ReadAsStringAsync();
-
-         // see structure of token response below
-         var tokenResponse = JsonSerializer.Deserialize<RefreshTokenResponse>(json);
-         
-         return new OkObjectResult(new 
-         {
-            AccessToken = tokenResponse.AccessToken,
-            IdToken = tokenResponse.IdToken 
-         });
-      }
-
-      public class RefreshTokenResponse
+      if (!response.IsSuccessStatusCode)
       {
-
-         [JsonPropertyName("access_token")]
-         public string AccessToken { get; set; }
-
-         [JsonPropertyName("expires_in")]
-         public int ExpiresIn { get; set; }
-
-         [JsonPropertyName("scope")]
-         public string Scope { get; set; }
-
-         [JsonPropertyName("id_token")]
-         public string IdToken { get; set; }
-
-         [JsonPropertyName("token_type")]
-         public string TokenType { get; set; }
+            throw new Exception($"Failed to get tokens ({response.ReasonPhrase})");
       }
+
+      var json = await response.Content.ReadAsStringAsync();
+
+      // see structure of token response below
+      var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(json);
+
+      return new OkObjectResult(new
+      {
+            AccessToken = tokenResponse.access_token,
+            IdToken = tokenResponse.id_token
+      });
+   }
    ```
 
 # Common Integration Scenarios

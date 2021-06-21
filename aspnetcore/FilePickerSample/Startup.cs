@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace PowerDms
+namespace FilePickerSample
 {
     public class Startup
     {
@@ -12,15 +13,26 @@ namespace PowerDms
         }
 
         public IConfiguration Configuration { get; }
-        
+
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             var options = new DefaultFilesOptions();
             options.DefaultFileNames.Clear();
             options.DefaultFileNames.Add("index.html");
-            
+
             app.UseDefaultFiles(options);
             app.UseStaticFiles();
+            app.UseRouting();
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
+        }
+
+        public void ConfigureServices(IServiceCollection services)
+        {
+            services.AddControllers();
         }
     }
 }

@@ -11,4 +11,12 @@
     <None Remove="wwwroot\lib\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Controller.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Runtime.Caching" Version="5.0.0" />
+  </ItemGroup>
+
 </Project>
