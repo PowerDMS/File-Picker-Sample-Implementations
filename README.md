@@ -70,8 +70,12 @@ The File Picker uses Open ID Connect Code Flow (OIDC Code Flow) for authenticati
 
       window.PowerDms.openAuthModal(config);
    }
+   ```
    
    ![image](https://user-images.githubusercontent.com/13018283/122817224-a84d3100-d2a5-11eb-8d43-06ee5d325665.png)
+   
+   ![image](https://user-images.githubusercontent.com/13018283/122818432-2bbb5200-d2a7-11eb-8272-e95d4cdb936d.png)
+
 
 3.  Implement the callback to retrieve the OIDC tokens. Upon successful authentication, the user will be redirected back to the `redirectUrl` with query string parameters reflecting the code and state in the form `redirectUrl?code=${code}&state=${state}`. You will need to make a POST request to `https://accounts.powerdms.com/oauth/token` with the following form-url encoded parameters: 
       - grant_type = authorization_code
@@ -210,6 +214,9 @@ At a high level, the PowerDMS File Picker is implemented as an iFrame that gets 
    }
    window.addEventListener('message', receiveMessage, false);
    ```
+   
+   ![image](https://user-images.githubusercontent.com/13018283/122818572-5f967780-d2a7-11eb-9d4f-39ef7087b929.png)
+
 
    The `configuration` provided to `openFilePicker` must include the `API Key` provided by PowerDMS for your application and the function you previously created to receive the `onSelection` callback when the user selects documents.
 
