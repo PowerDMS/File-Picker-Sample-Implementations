@@ -31,7 +31,7 @@ It presents users with a familiar and consistent experience when accessing their
 
 There are a few high level steps to follow to integrate the File Picker into your application. 
 
-First, you'll need to prompt the user to authenticate against PowerDMS and grant your application access on their behalf. This is accomplised by implementing an Open Id Connect Code Flow. You'll need to save the refresh token so that you can request access tokens in the future so that the user does not need to continue to authenticate. See [Authenticating via the File Picker](#Authenticating-via-the-File-Picker) for details. 
+First, you'll need to prompt the user to authenticate against PowerDMS and grant your application access on their behalf. This is accomplished by implementing an Open Id Connect Code Flow. You'll need to save the refresh token so that you can request access tokens in the future so that the user does not need to continue to authenticate. See [Authenticating via the File Picker](#Authenticating-via-the-File-Picker) for details. 
 
 Once you've received an access token, you'll then need to display the File Picker. You'll pass in the access token and other configuration parameters. See [Displaying the PowerDMS File Picker](#Displaying-the-PowerDMS-File-Picker) for more details. 
 
